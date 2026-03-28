@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Shell de la aplicación: define la estructura de navegación.
+    Spider Solitaire usa navegación simple: Menú → Juego.
+-->
 <Shell
-    x:Class="Spider_Solitaire.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:Spider_Solitaire"
-    Title="Spider_Solitaire">
+    xmlns:views="clr-namespace:SpiderSolitaire.Views"
+    x:Class="SpiderSolitaire.AppShell"
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="{StaticResource BackgroundPrimary}">
 
+    <!--
+        Ruta raíz: menú principal.
+        //MainMenu es la ruta absoluta del tab raíz.
+    -->
     <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+        Title="Menú"
+        ContentTemplate="{DataTemplate views:MainMenuPage}"
+        Route="MainMenu"/>
 
 </Shell>
