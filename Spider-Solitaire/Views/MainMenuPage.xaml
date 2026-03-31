@@ -107,108 +107,122 @@
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
 
-                <!-- ══ SELECCIÓN DE DIFICULTAD ══════════════════════ -->
+                <!-- ══ SELECCIÓN DE DIFICULTAD ══════════════════════════════ -->
                 <VerticalStackLayout Spacing="14" Margin="0,0,0,40">
 
                     <Label
-                        Text="Elige tu aventura"
-                        FontFamily="{StaticResource FontTitle}"
-                        FontSize="16"
-                        TextColor="{StaticResource TextOnDark}"
-                        HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"
-                        Opacity="0.7"
-                        CharacterSpacing="2"
-                        TextTransform="Uppercase"/>
+        Text="Elige tu aventura"
+        FontFamily="{StaticResource FontTitle}"
+        FontSize="16"
+        TextColor="{StaticResource TextOnDark}"
+        HorizontalOptions="Center"
+        HorizontalTextAlignment="Center"
+        Opacity="0.7"
+        CharacterSpacing="2"
+        TextTransform="Uppercase"/>
 
-                    <!-- Botones de dificultad -->
-                    <BindableLayout.ItemsSource>
-                        <x:Array Type="{x:Type vm:DifficultyOption}"/>
-                    </BindableLayout.ItemsSource>
+                    <!-- Opción 1: Un Palo -->
+                    <Border
+        x:Name="BorderOneSuit"
+        StrokeShape="RoundRectangle 14,14,14,14"
+        StrokeThickness="1.5"
+        Stroke="{StaticResource AccentMoss}"
+        BackgroundColor="{StaticResource BackgroundSecondary}"
+        Padding="20,14">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                Command="{Binding SelectDifficultyCommand}"
+                CommandParameter="0"/>
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="🌿 Un Palo"
+                       FontFamily="{StaticResource FontBodyBold}"
+                       FontSize="15"
+                       TextColor="{StaticResource TextOnDark}"/>
+                                <Label Text="Ideal para principiantes"
+                       FontFamily="{StaticResource FontBody}"
+                       FontSize="12"
+                       TextColor="{StaticResource TextOnDark}"
+                       Opacity="0.65"/>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="✓"
+                   FontSize="20"
+                   TextColor="{StaticResource AccentGold}"
+                   VerticalOptions="Center"
+                   IsVisible="{Binding SelectedDifficulty,
+                       Converter={StaticResource IsOneSuitConverter}}"/>
+                        </Grid>
+                    </Border>
 
-                    <VerticalStackLayout
-                        x:Name="DifficultyContainer"
-                        Spacing="10"
-                        BindableLayout.ItemsSource="{Binding DifficultyOptions}">
+                    <!-- Opción 2: Dos Palos -->
+                    <Border
+        x:Name="BorderTwoSuits"
+        StrokeShape="RoundRectangle 14,14,14,14"
+        StrokeThickness="1.5"
+        Stroke="{StaticResource AccentMoss}"
+        BackgroundColor="{StaticResource BackgroundSecondary}"
+        Padding="20,14">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                Command="{Binding SelectDifficultyCommand}"
+                CommandParameter="1"/>
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="🌸 Dos Palos"
+                       FontFamily="{StaticResource FontBodyBold}"
+                       FontSize="15"
+                       TextColor="{StaticResource TextOnDark}"/>
+                                <Label Text="Desafío moderado"
+                       FontFamily="{StaticResource FontBody}"
+                       FontSize="12"
+                       TextColor="{StaticResource TextOnDark}"
+                       Opacity="0.65"/>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="✓"
+                   FontSize="20"
+                   TextColor="{StaticResource AccentGold}"
+                   VerticalOptions="Center"
+                   IsVisible="{Binding SelectedDifficulty,
+                       Converter={StaticResource IsTwoSuitsConverter}}"/>
+                        </Grid>
+                    </Border>
 
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="vm:DifficultyOption">
-                                <Border
-                                    StrokeShape="RoundRectangle 14,14,14,14"
-                                    StrokeThickness="1.5"
-                                    Padding="20,14">
+                    <!-- Opción 3: Cuatro Palos -->
+                    <Border
+        x:Name="BorderFourSuits"
+        StrokeShape="RoundRectangle 14,14,14,14"
+        StrokeThickness="1.5"
+        Stroke="{StaticResource AccentMoss}"
+        BackgroundColor="{StaticResource BackgroundSecondary}"
+        Padding="20,14">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                Command="{Binding SelectDifficultyCommand}"
+                CommandParameter="2"/>
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="🍂 Cuatro Palos"
+                       FontFamily="{StaticResource FontBodyBold}"
+                       FontSize="15"
+                       TextColor="{StaticResource TextOnDark}"/>
+                                <Label Text="Para expertos"
+                       FontFamily="{StaticResource FontBody}"
+                       FontSize="12"
+                       TextColor="{StaticResource TextOnDark}"
+                       Opacity="0.65"/>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="✓"
+                   FontSize="20"
+                   TextColor="{StaticResource AccentGold}"
+                   VerticalOptions="Center"
+                   IsVisible="{Binding SelectedDifficulty,
+                       Converter={StaticResource IsFourSuitsConverter}}"/>
+                        </Grid>
+                    </Border>
 
-                                    <Border.Triggers>
-                                        <DataTrigger
-                                            TargetType="Border"
-                                            Binding="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                              Path=BindingContext.SelectedDifficulty}"
-                                            Value="{Binding Value}">
-                                            <Setter Property="BackgroundColor"
-                                                    Value="{StaticResource ButtonPrimary}"/>
-                                            <Setter Property="Stroke"
-                                                    Value="{StaticResource AccentGold}"/>
-                                        </DataTrigger>
-                                    </Border.Triggers>
-
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                              Path=BindingContext.SelectDifficultyCommand}"
-                                            CommandParameter="{Binding Value}"/>
-                                    </Border.GestureRecognizers>
-
-                                    <Grid ColumnDefinitions="Auto,*,Auto">
-
-                                        <!-- Emoji indicador -->
-                                        <Label
-                                            Grid.Column="0"
-                                            Text="{Binding Label}"
-                                            FontSize="18"
-                                            VerticalOptions="Center"
-                                            Margin="0,0,12,0"/>
-
-                                        <!-- Descripción -->
-                                        <VerticalStackLayout
-                                            Grid.Column="1"
-                                            VerticalOptions="Center"
-                                            Spacing="2">
-                                            <Label
-                                                Text="{Binding Label}"
-                                                FontFamily="{StaticResource FontBodyBold}"
-                                                FontSize="15"
-                                                TextColor="{StaticResource TextOnDark}"/>
-                                            <Label
-                                                Text="{Binding Description}"
-                                                FontFamily="{StaticResource FontBody}"
-                                                FontSize="12"
-                                                TextColor="{StaticResource TextOnDark}"
-                                                Opacity="0.65"/>
-                                        </VerticalStackLayout>
-
-                                        <!-- Check de selección -->
-                                        <Label
-                                            Grid.Column="2"
-                                            Text="✓"
-                                            FontSize="18"
-                                            TextColor="{StaticResource AccentGold}"
-                                            VerticalOptions="Center">
-                                            <Label.Triggers>
-                                                <DataTrigger
-                                                    TargetType="Label"
-                                                    Binding="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                      Path=BindingContext.SelectedDifficulty}"
-                                                    Value="{Binding Value}">
-                                                    <Setter Property="IsVisible" Value="True"/>
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                            <Label.IsVisible>False</Label.IsVisible>
-                                        </Label>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
-                    </VerticalStackLayout>
                 </VerticalStackLayout>
 
                 <!-- ══ BOTONES DE ACCIÓN ═════════════════════════════ -->

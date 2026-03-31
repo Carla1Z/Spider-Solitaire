@@ -1,8 +1,8 @@
 ﻿// Métodos de extensión para Card que no pertenecen al dominio central.
-using SpiderSolitaire.Constants;
-using SpiderSolitaire.Models;
 using System.Collections.Generic;
 using System.Linq;
+using SpiderSolitaire.Constants;   // ← MOVIDO AQUÍ ARRIBA
+using SpiderSolitaire.Models;
 
 namespace SpiderSolitaire.Extensions
 {
@@ -13,7 +13,6 @@ namespace SpiderSolitaire.Extensions
     {
         /// <summary>
         /// Verifica si una lista de cartas forma una secuencia válida del mismo palo.
-        /// Usado para determinar si una secuencia puede removerse del tablero.
         /// </summary>
         public static bool IsSameSuitSequence(this List<Card> cards)
         {
@@ -43,8 +42,7 @@ namespace SpiderSolitaire.Extensions
         }
 
         /// <summary>
-        /// Retorna el símbolo de color CSS/XAML según el palo.
-        /// Útil en el mapper para asignar colores directamente.
+        /// Retorna el color hex según el palo de la carta.
         /// </summary>
         public static string GetDisplayColor(this Card card)
             => card.Suit is Suit.Hearts or Suit.Diamonds
@@ -52,14 +50,9 @@ namespace SpiderSolitaire.Extensions
                 : AppColors.TextBlack;
 
         /// <summary>
-        /// Devuelve true si dos cartas pueden apilarse en Spider
-        /// (targetCard encima de sourceCard).
-        /// La carta target debe ser exactamente 1 mayor que source.
+        /// Devuelve true si source puede apilarse sobre target en Spider.
         /// </summary>
         public static bool CanStackOn(this Card source, Card target)
             => target.IsFaceUp && target.Value == source.Value + 1;
     }
-
-    // Necesario para usar AppColors aquí sin namespace completo
-    using SpiderSolitaire.Constants;
 }

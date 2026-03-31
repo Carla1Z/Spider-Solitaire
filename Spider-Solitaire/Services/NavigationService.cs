@@ -1,5 +1,4 @@
-﻿// Implementación de INavigationService usando Shell de MAUI.
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using SpiderSolitaire.DTOs;
 using SpiderSolitaire.Interfaces;
 using SpiderSolitaire.Constants;
@@ -7,8 +6,10 @@ using SpiderSolitaire.Constants;
 namespace SpiderSolitaire.Services
 {
     /// <summary>
-    /// Navega usando Shell.Current.GoToAsync.
-    /// Registrado como Singleton para mantener el estado de navegación.
+    /// Navega usando Shell.Current.GoToAsync con query string en la URL.
+    /// IMPORTANTE: pasar parámetros como query string "?key=value"
+    /// es el método más confiable en MAUI — evita el cast error
+    /// que ocurre al usar Dictionary con objetos tipados.
     /// </summary>
     public class NavigationService : INavigationService
     {
@@ -20,12 +21,18 @@ namespace SpiderSolitaire.Services
 
         public Task NavigateToGameAsync(NewGameRequestDto request)
         {
-            var parameters = new Dictionary<string, object>
-            {
-                { RouteParameters.Difficulty, (int)request.Difficulty },
-                { RouteParameters.Seed,       request.Seed?.ToString() ?? "" }
-            };
-            return Shell.Current.GoToAsync(AppRoutes.Game, parameters);
+            // ✅ Pasar como query string directamente en la URL
+            // Shell parsea estos valores como string y [QueryProperty]
+            // los recibe sin problemas de casting
+            int difficultyValue = (int)request.Difficulty;
+            string seedValue = request.Seed?.ToString() ?? string.Empty;
+
+            string route = $"{AppRoutes.Game}?difficulty={difficultyValue}&seed={seedValue}";
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[NavigationService] Navigating to: {route}");
+
+            return Shell.Current.GoToAsync(route);
         }
     }
 }

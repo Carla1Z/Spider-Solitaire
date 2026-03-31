@@ -1,4 +1,5 @@
 ﻿using Foundation;
+using SpiderSolitaire;
 
 namespace Spider_Solitaire
 {

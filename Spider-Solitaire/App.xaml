@@ -16,6 +16,10 @@
                  PALETA DE COLORES — COTTAGE CORE
                  Tonos suaves de naturaleza: bosque, tierra, flores
             ══════════════════════════════════════════════════════ -->
+            <!-- Converters de selección de dificultad -->
+            <converters:IsOneSuitConverter   x:Key="IsOneSuitConverter"/>
+            <converters:IsTwoSuitsConverter  x:Key="IsTwoSuitsConverter"/>
+            <converters:IsFourSuitsConverter x:Key="IsFourSuitsConverter"/>
 
             <!-- Fondos -->
             <Color x:Key="BackgroundPrimary">#2D4A2D</Color>

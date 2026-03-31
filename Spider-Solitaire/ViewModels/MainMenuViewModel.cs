@@ -1,18 +1,13 @@
-﻿// ViewModel de la pantalla principal / menú.
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using SpiderSolitaire.DTOs;
 using SpiderSolitaire.Interfaces;
 using SpiderSolitaire.Models;
 
 namespace SpiderSolitaire.ViewModels
 {
-    /// <summary>
-    /// Maneja la lógica del menú principal:
-    /// - Selección de dificultad
-    /// - Iniciar nueva partida
-    /// - Continuar partida guardada
-    /// </summary>
     public class MainMenuViewModel : BaseViewModel
     {
         // ── Dependencias ───────────────────────────────────────────
@@ -36,12 +31,12 @@ namespace SpiderSolitaire.ViewModels
             set => SetProperty(ref _hasSavedGame, value);
         }
 
-        // ── Opciones de dificultad para la UI ─────────────────────
-        public DifficultyOption[] DifficultyOptions { get; } =
+        // ── Opciones de dificultad ─────────────────────────────────
+        public List<DifficultyOption> DifficultyOptions { get; } = new()
         {
-            new(Difficulty.OneSuit,   "🌿 Un Palo",    "Ideal para principiantes"),
-            new(Difficulty.TwoSuits,  "🌸 Dos Palos",  "Desafío moderado"),
-            new(Difficulty.FourSuits, "🍂 Cuatro Palos","Para expertos")
+            new(Difficulty.OneSuit,   "🌿 Un Palo",     "Ideal para principiantes"),
+            new(Difficulty.TwoSuits,  "🌸 Dos Palos",   "Desafío moderado"),
+            new(Difficulty.FourSuits, "🍂 Cuatro Palos", "Para expertos")
         };
 
         // ── Comandos ───────────────────────────────────────────────
@@ -61,64 +56,108 @@ namespace SpiderSolitaire.ViewModels
 
             Title = "Spider Solitaire";
 
-            NewGameCommand = new Command(async () => await OnNewGameAsync());
-            ContinueGameCommand = new Command(async () => await OnContinueAsync(),
-                                                  () => HasSavedGame);
-            SelectDifficultyCommand = new Command<Difficulty>(d => SelectedDifficulty = d);
+            // ✅ Command simple y síncrono para SelectDifficulty —
+            // no necesita async, solo actualiza una propiedad
+            SelectDifficultyCommand = new Command<string>(OnSelectDifficulty);
+
+            // ✅ Los comandos async se envuelven en MainThread
+            NewGameCommand = new Command(OnNewGame);
+            ContinueGameCommand = new Command(OnContinueGame,
+                                              () => HasSavedGame);
         }
 
         // ── Inicialización ─────────────────────────────────────────
         public async Task InitializeAsync()
         {
-            await ExecuteAsync(async () =>
+            try
             {
                 HasSavedGame = await _repository.HasSavedGameAsync();
-                // Refrescar el estado del comando ContinueGame
                 (ContinueGameCommand as Command)?.ChangeCanExecute();
-            });
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainMenuVM] InitializeAsync error: {ex.Message}");
+            }
         }
 
-        // ── Handlers de comandos ───────────────────────────────────
-        private async Task OnNewGameAsync()
+        // ── Handlers ──────────────────────────────────────────────
+        // ✅ Recibe string desde XAML CommandParameter y convierte a Difficulty
+        private void OnSelectDifficulty(string? param)
         {
-            await ExecuteAsync(async () =>
-            {
-                // Si hay partida guardada, confirmar antes de sobrescribir
-                if (HasSavedGame)
-                {
-                    bool confirm = await _dialog.ShowConfirmAsync(
-                        "Nueva Partida",
-                        "¿Abandonar la partida actual y comenzar una nueva?",
-                        "Sí, nueva partida",
-                        "Cancelar");
+            if (param == null) return;
 
-                    if (!confirm) return;
+            // Mapear string al enum — CommandParameter en XAML es siempre string
+            SelectedDifficulty = param switch
+            {
+                "0" => Difficulty.OneSuit,
+                "1" => Difficulty.TwoSuits,
+                "2" => Difficulty.FourSuits,
+                _ => Difficulty.OneSuit
+            };
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[MainMenuVM] Difficulty selected: {SelectedDifficulty}");
+        }
+
+        private void OnNewGame()
+        {
+            // ✅ Toda la lógica async dentro de MainThread para garantizar
+            // que Shell.GoToAsync se ejecute en el hilo correcto en Android
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try
+                {
+                    if (HasSavedGame)
+                    {
+                        bool confirm = await _dialog.ShowConfirmAsync(
+                            "Nueva Partida",
+                            "¿Abandonar la partida actual y comenzar una nueva?",
+                            "Sí, nueva partida",
+                            "Cancelar");
+
+                        if (!confirm) return;
+                    }
+
+                    var request = new NewGameRequestDto
+                    {
+                        Difficulty = SelectedDifficulty
+                    };
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[MainMenuVM] Navigating to game, difficulty: {request.Difficulty}");
+
+                    await _navigation.NavigateToGameAsync(request);
                 }
-
-                var request = new NewGameRequestDto
+                catch (System.Exception ex)
                 {
-                    Difficulty = SelectedDifficulty
-                };
-                await _navigation.NavigateToGameAsync(request);
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[MainMenuVM] OnNewGame error: {ex.Message}\n{ex.StackTrace}");
+                }
             });
         }
 
-        private async Task OnContinueAsync()
+        private void OnContinueGame()
         {
-            await ExecuteAsync(async () =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                var request = new NewGameRequestDto
+                try
                 {
-                    Difficulty = SelectedDifficulty
-                };
-                await _navigation.NavigateToGameAsync(request);
+                    var request = new NewGameRequestDto
+                    {
+                        Difficulty = SelectedDifficulty
+                    };
+                    await _navigation.NavigateToGameAsync(request);
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[MainMenuVM] OnContinueGame error: {ex.Message}");
+                }
             });
         }
     }
 
-    /// <summary>
-    /// Helper para mostrar opciones de dificultad en la UI.
-    /// </summary>
     public record DifficultyOption(
         Difficulty Value,
         string Label,

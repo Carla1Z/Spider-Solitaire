@@ -1,5 +1,3 @@
-// Code-behind mínimo: solo inicializa el ViewModel.
-// Toda la lógica vive en MainMenuViewModel.
 using SpiderSolitaire.ViewModels;
 
 namespace SpiderSolitaire.Views
@@ -15,11 +13,17 @@ namespace SpiderSolitaire.Views
             BindingContext = _viewModel;
         }
 
-        // Inicializar cuando la página aparece en pantalla
-        protected override async void OnAppearing()
+        protected override void OnAppearing()
         {
             base.OnAppearing();
-            await _viewModel.InitializeAsync();
+
+            // ✅ Disparar sin await para no bloquear el hilo de UI
+            // MainThread.BeginInvokeOnMainThread garantiza que la
+            // actualización de propiedades ocurra en el hilo correcto
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await _viewModel.InitializeAsync();
+            });
         }
     }
 }

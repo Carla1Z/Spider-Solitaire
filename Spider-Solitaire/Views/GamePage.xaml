@@ -1,363 +1,147 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--
-    Pantalla principal del juego.
-    Layout: barra superior de stats → tablero de 10 columnas → controles inferiores.
-    Estética cottage core con fondo tipo tapete verde oscuro.
--->
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:vm="clr-namespace:SpiderSolitaire.ViewModels"
-    xmlns:controls="clr-namespace:SpiderSolitaire.Controls"
-    xmlns:behaviors="clr-namespace:SpiderSolitaire.Behaviors"
     xmlns:dto="clr-namespace:SpiderSolitaire.DTOs"
+    xmlns:controls="clr-namespace:SpiderSolitaire.Controls"
     x:Class="SpiderSolitaire.Views.GamePage"
     x:DataType="vm:GameViewModel"
+    x:Name="ThisPage"
     BackgroundColor="{StaticResource TableFelt}"
-    Shell.NavBarIsVisible="False"
-    Title="Spider Solitaire">
+    Shell.NavBarIsVisible="False">
 
-    <Grid
-        RowDefinitions="Auto,*,Auto"
-        Padding="0">
+    <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- ══ BARRA SUPERIOR DE ESTADÍSTICAS ════════════════════ -->
+        <!-- ══ BARRA SUPERIOR ════════════════════════════════════ -->
         <Border
             Grid.Row="0"
             BackgroundColor="{StaticResource BackgroundPrimary}"
             StrokeThickness="0"
-            Padding="12,10"
-            Shadow="{Shadow Brush={StaticResource CardShadow},
-                            Offset='0,2', Radius=4, Opacity=0.4}">
+            Padding="10,8">
 
-            <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*,Auto">
+            <Grid ColumnDefinitions="40,*,*,*,60">
 
                 <!-- Botón Menú -->
                 <Button
                     Grid.Column="0"
                     Text="🏡"
-                    FontSize="20"
+                    FontSize="18"
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource TextOnDark}"
                     Command="{Binding BackToMenuCommand}"
-                    Padding="4,0"
-                    MinimumWidthRequest="40"/>
+                    Padding="0"
+                    MinimumWidthRequest="40"
+                    HeightRequest="36"/>
 
                 <!-- Puntaje -->
-                <VerticalStackLayout
-                    Grid.Column="1"
-                    HorizontalOptions="Center"
-                    Spacing="0">
-                    <Label
-                        Text="PUNTAJE"
-                        FontFamily="{StaticResource FontBody}"
-                        FontSize="9"
-                        TextColor="{StaticResource TextOnDark}"
-                        Opacity="0.6"
-                        HorizontalTextAlignment="Center"
-                        CharacterSpacing="1"/>
-                    <Label
-                        Text="{Binding Score}"
-                        FontFamily="{StaticResource FontTitleBold}"
-                        FontSize="18"
-                        TextColor="{StaticResource AccentGold}"
-                        HorizontalTextAlignment="Center"/>
+                <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="0">
+                    <Label Text="PUNTAJE" Style="{StaticResource StatLabelStyle}"/>
+                    <Label Text="{Binding Score}" Style="{StaticResource StatValueStyle}"/>
                 </VerticalStackLayout>
-
-                <!-- Separador -->
-                <BoxView
-                    Grid.Column="2"
-                    Color="{StaticResource TextOnDark}"
-                    Opacity="0.2"
-                    WidthRequest="1"
-                    Margin="4,4"/>
 
                 <!-- Movimientos -->
-                <VerticalStackLayout
-                    Grid.Column="3"
-                    HorizontalOptions="Center"
-                    Spacing="0">
-                    <Label
-                        Text="MOVS"
-                        FontFamily="{StaticResource FontBody}"
-                        FontSize="9"
-                        TextColor="{StaticResource TextOnDark}"
-                        Opacity="0.6"
-                        HorizontalTextAlignment="Center"
-                        CharacterSpacing="1"/>
-                    <Label
-                        Text="{Binding Moves}"
-                        FontFamily="{StaticResource FontTitleBold}"
-                        FontSize="18"
-                        TextColor="{StaticResource TextOnDark}"
-                        HorizontalTextAlignment="Center"/>
+                <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center" Spacing="0">
+                    <Label Text="MOVS" Style="{StaticResource StatLabelStyle}"/>
+                    <Label Text="{Binding Moves}" Style="{StaticResource StatValueStyle}"/>
                 </VerticalStackLayout>
-
-                <!-- Separador -->
-                <BoxView
-                    Grid.Column="4"
-                    Color="{StaticResource TextOnDark}"
-                    Opacity="0.2"
-                    WidthRequest="1"
-                    Margin="4,4"/>
 
                 <!-- Tiempo -->
-                <VerticalStackLayout
-                    Grid.Column="5"
-                    HorizontalOptions="Center"
-                    Spacing="0">
-                    <Label
-                        Text="TIEMPO"
-                        FontFamily="{StaticResource FontBody}"
-                        FontSize="9"
-                        TextColor="{StaticResource TextOnDark}"
-                        Opacity="0.6"
-                        HorizontalTextAlignment="Center"
-                        CharacterSpacing="1"/>
-                    <Label
-                        Text="{Binding ElapsedTime}"
-                        FontFamily="{StaticResource FontTitleBold}"
-                        FontSize="18"
-                        TextColor="{StaticResource TextOnDark}"
-                        HorizontalTextAlignment="Center"/>
+                <VerticalStackLayout Grid.Column="3" HorizontalOptions="Center" Spacing="0">
+                    <Label Text="TIEMPO" Style="{StaticResource StatLabelStyle}"/>
+                    <Label Text="{Binding ElapsedTime}" Style="{StaticResource StatValueStyle}"/>
                 </VerticalStackLayout>
 
-                <!-- Secuencias completadas -->
-                <HorizontalStackLayout
-                    Grid.Column="6"
-                    Spacing="4"
+                <!-- Secuencias -->
+                <Label
+                    Grid.Column="4"
+                    Text="{Binding CompletedSequences, StringFormat='{0}/8 🃏'}"
+                    FontFamily="{StaticResource FontBodyBold}"
+                    FontSize="13"
+                    TextColor="{StaticResource AccentGold}"
                     VerticalOptions="Center"
-                    Margin="8,0,0,0">
-                    <Label
-                        Text="🃏"
-                        FontSize="14"
-                        VerticalOptions="Center"/>
-                    <Label
-                        Text="{Binding CompletedSequences, StringFormat='{0}/8'}"
-                        FontFamily="{StaticResource FontBodyBold}"
-                        FontSize="14"
-                        TextColor="{StaticResource AccentGold}"
-                        VerticalOptions="Center"/>
-                </HorizontalStackLayout>
+                    HorizontalOptions="Center"/>
             </Grid>
         </Border>
 
-        <!-- ══ TABLERO DE JUEGO ══════════════════════════════════ -->
-        <ScrollView
-            Grid.Row="1"
-            Orientation="Both">
-
+        <!-- ══ TABLERO ═══════════════════════════════════════════ -->
+        <ScrollView Grid.Row="1" Orientation="Both">
             <Grid
                 x:Name="BoardGrid"
-                Padding="4,8"
-                ColumnSpacing="3"
-                ColumnDefinitions="*,*,*,*,*,*,*,*,*,*"
-                VerticalOptions="Start">
-
+                Padding="4,8,4,8"
+                VerticalOptions="Start"
+                HorizontalOptions="Fill">
                 <!--
-                    Las 10 columnas se generan dinámicamente en code-behind
-                    usando CollectionView o BindableLayout.
-                    Aquí definimos el template de columna.
+                    Las columnas se generan en code-behind con
+                    ColumnViews dinámicos — evita RelativeSource
+                    dentro de DataTemplate que crashea en Android.
                 -->
-                <BindableLayout.ItemsSource>
-                </BindableLayout.ItemsSource>
-
-                <!-- Columnas del tablero — generadas vía BindableLayout -->
-                <CollectionView
-                    Grid.ColumnSpan="10"
-                    ItemsSource="{Binding Columns}"
-                    ItemsLayout="HorizontalList"
-                    HorizontalOptions="Fill"
-                    VerticalOptions="Start">
-
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="dto:ColumnDto">
-
-                            <!-- Zona de columna individual -->
-                            <Grid
-                                WidthRequest="62"
-                                Margin="2,0"
-                                VerticalOptions="Start">
-
-                                <Grid.Behaviors>
-                                    <behaviors:DropColumnBehavior
-                                        ColumnIndex="{Binding Index}"
-                                        DropCommand="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                              Path=BindingContext.DropCommand}"
-                                        DragOverCommand="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                   Path=BindingContext.DragOverCommand}"
-                                        DragLeaveCommand="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                    Path=BindingContext.DragLeaveCommand}"/>
-                                </Grid.Behaviors>
-
-                                <!-- Placeholder columna vacía -->
-                                <Border
-                                    IsVisible="{Binding IsEmpty}"
-                                    BackgroundColor="Transparent"
-                                    Stroke="{StaticResource AccentMoss}"
-                                    StrokeThickness="1.5"
-                                    StrokeShape="RoundRectangle 8,8,8,8"
-                                    HeightRequest="90"
-                                    Opacity="0.4">
-                                    <Label
-                                        Text="🌿"
-                                        FontSize="24"
-                                        HorizontalOptions="Center"
-                                        VerticalOptions="Center"
-                                        Opacity="0.5"/>
-                                </Border>
-
-                                <!-- Resaltado de columna destino válida -->
-                                <Border
-                                    BackgroundColor="{StaticResource HighlightValid}"
-                                    Opacity="0.2"
-                                    StrokeShape="RoundRectangle 8,8,8,8"
-                                    IsVisible="{Binding IsDropTarget}"
-                                    VerticalOptions="Fill"
-                                    HorizontalOptions="Fill"/>
-
-                                <!-- Cartas de la columna -->
-                                <VerticalStackLayout
-                                    IsVisible="{Binding IsEmpty, Converter={StaticResource InverseBoolConverter}}"
-                                    Spacing="0"
-                                    BindableLayout.ItemsSource="{Binding Cards}">
-
-                                    <BindableLayout.ItemTemplate>
-                                        <DataTemplate x:DataType="dto:CardDto">
-
-                                            <!-- Wrapper de carta con offset de apilamiento -->
-                                            <Grid
-                                                HeightRequest="24"
-                                                Margin="0">
-
-                                                <Grid.GestureRecognizers>
-                                                    <TapGestureRecognizer
-                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                          Path=BindingContext.CardTappedCommand}"
-                                                        CommandParameter="{Binding .}"/>
-                                                </Grid.GestureRecognizers>
-
-                                                <!-- Control de carta -->
-                                                <controls:CardView
-                                                    CardData="{Binding .}"
-                                                    HeightRequest="90"
-                                                    VerticalOptions="Start">
-
-                                                    <controls:CardView.Behaviors>
-                                                        <behaviors:CardDragBehavior
-                                                            ColumnIndex="{Binding ColumnIndex}"
-                                                            CardIndex="{Binding PositionInColumn}"
-                                                            IsDraggable="{Binding IsDraggable}"
-                                                            DragStartedCommand="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}},
-                                                                                          Path=BindingContext.DragStartedCommand}"/>
-                                                    </controls:CardView.Behaviors>
-                                                </controls:CardView>
-                                            </Grid>
-
-                                        </DataTemplate>
-                                    </BindableLayout.ItemTemplate>
-                                </VerticalStackLayout>
-
-                            </Grid>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
             </Grid>
         </ScrollView>
 
-        <!-- ══ BARRA DE CONTROLES INFERIOR ══════════════════════ -->
+        <!-- ══ BARRA INFERIOR ════════════════════════════════════ -->
         <Border
             Grid.Row="2"
             BackgroundColor="{StaticResource BackgroundPrimary}"
             StrokeThickness="0"
-            Padding="16,10"
-            Shadow="{Shadow Brush={StaticResource CardShadow},
-                            Offset='0,-2', Radius=4, Opacity=0.4}">
+            Padding="12,8">
 
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto,*">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
 
-                <!-- Dificultad (izquierda) -->
+                <!-- Dificultad -->
                 <Label
                     Grid.Column="0"
                     Text="{Binding DifficultyLabel}"
                     FontFamily="{StaticResource FontBody}"
-                    FontSize="12"
+                    FontSize="11"
                     TextColor="{StaticResource TextOnDark}"
                     Opacity="0.6"
                     VerticalOptions="Center"/>
 
-                <!-- Botón DESHACER -->
-                <Border
+                <!-- Deshacer -->
+                <Button
                     Grid.Column="1"
+                    Text="↩ Deshacer"
+                    Command="{Binding UndoCommand}"
                     BackgroundColor="{StaticResource ButtonPrimary}"
-                    StrokeShape="RoundRectangle 12,12,12,12"
-                    StrokeThickness="0"
-                    Padding="14,10"
-                    Margin="6,0"
-                    Opacity="{Binding CanUndo, Converter={StaticResource BoolOpacity}}">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding UndoCommand}"/>
-                    </Border.GestureRecognizers>
-                    <HorizontalStackLayout Spacing="6">
-                        <Label Text="↩" FontSize="16" TextColor="{StaticResource TextOnDark}" VerticalOptions="Center"/>
-                        <Label Text="Deshacer" FontFamily="{StaticResource FontBody}" FontSize="13"
-                               TextColor="{StaticResource TextOnDark}" VerticalOptions="Center"/>
-                    </HorizontalStackLayout>
-                </Border>
+                    TextColor="{StaticResource TextOnDark}"
+                    FontFamily="{StaticResource FontBody}"
+                    FontSize="13"
+                    CornerRadius="10"
+                    HeightRequest="40"
+                    Margin="4,0"
+                    Opacity="{Binding CanUndo, Converter={StaticResource BoolOpacity}}"/>
 
-                <!-- Botón REPARTIR (stock) -->
-                <Border
+                <!-- Repartir -->
+                <Button
                     Grid.Column="2"
+                    Text="{Binding StockRemaining, StringFormat='🃏 Repartir ({0})'}"
+                    Command="{Binding DealCommand}"
                     BackgroundColor="{StaticResource ButtonSecondary}"
-                    StrokeShape="RoundRectangle 12,12,12,12"
-                    StrokeThickness="0"
-                    Padding="14,10"
-                    Margin="6,0"
-                    Opacity="{Binding CanDeal, Converter={StaticResource BoolOpacity}}">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding DealCommand}"/>
-                    </Border.GestureRecognizers>
-                    <HorizontalStackLayout Spacing="6">
-                        <Label Text="🃏" FontSize="16" VerticalOptions="Center"/>
-                        <Label
-                            Text="{Binding StockRemaining, StringFormat='Repartir ({0})'}"
-                            FontFamily="{StaticResource FontBody}"
-                            FontSize="13"
-                            TextColor="{StaticResource TextOnDark}"
-                            VerticalOptions="Center"/>
-                    </HorizontalStackLayout>
-                </Border>
+                    TextColor="{StaticResource TextOnDark}"
+                    FontFamily="{StaticResource FontBody}"
+                    FontSize="13"
+                    CornerRadius="10"
+                    HeightRequest="40"
+                    Margin="4,0"
+                    Opacity="{Binding CanDeal, Converter={StaticResource BoolOpacity}}"/>
 
-                <!-- Botón REINICIAR -->
-                <Border
+                <!-- Reiniciar -->
+                <Button
                     Grid.Column="3"
+                    Text="🔄"
+                    Command="{Binding RestartCommand}"
                     BackgroundColor="{StaticResource ButtonDanger}"
-                    StrokeShape="RoundRectangle 12,12,12,12"
-                    StrokeThickness="0"
-                    Padding="14,10"
-                    Margin="6,0">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding RestartCommand}"/>
-                    </Border.GestureRecognizers>
-                    <HorizontalStackLayout Spacing="6">
-                        <Label Text="🔄" FontSize="16" VerticalOptions="Center"/>
-                        <Label Text="Reiniciar" FontFamily="{StaticResource FontBody}" FontSize="13"
-                               TextColor="{StaticResource TextOnDark}" VerticalOptions="Center"/>
-                    </HorizontalStackLayout>
-                </Border>
-
-                <!-- Indicador de carga -->
-                <ActivityIndicator
-                    Grid.Column="4"
-                    IsRunning="{Binding IsBusy}"
-                    IsVisible="{Binding IsBusy}"
-                    Color="{StaticResource AccentGold}"
-                    HorizontalOptions="End"
-                    VerticalOptions="Center"/>
+                    TextColor="{StaticResource TextOnDark}"
+                    FontSize="16"
+                    CornerRadius="10"
+                    HeightRequest="40"
+                    WidthRequest="44"
+                    Margin="4,0"/>
             </Grid>
         </Border>
 
-        <!-- ══ OVERLAY DE FIN DE JUEGO ══════════════════════════ -->
+        <!-- ══ OVERLAY FIN DE JUEGO ══════════════════════════════ -->
         <Grid
             Grid.RowSpan="3"
             IsVisible="{Binding IsGameOver}"
@@ -371,61 +155,46 @@
                 StrokeShape="RoundRectangle 20,20,20,20"
                 StrokeThickness="0"
                 Padding="40,36"
-                Shadow="{Shadow Brush=Black, Offset='0,8', Radius=20, Opacity=0.4}"
                 MinimumWidthRequest="280">
 
                 <VerticalStackLayout Spacing="16" HorizontalOptions="Center">
 
-                    <!-- Emoji resultado -->
                     <Label
                         Text="{Binding HasWon, Converter={StaticResource WinLoseEmojiConverter}}"
                         FontSize="56"
-                        HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"/>
+                        HorizontalOptions="Center"/>
 
-                    <!-- Título resultado -->
                     <Label
                         Text="{Binding HasWon, Converter={StaticResource WinLoseTitleConverter}}"
                         FontFamily="{StaticResource FontDecorative}"
                         FontSize="32"
                         TextColor="{StaticResource TextPrimary}"
-                        HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"/>
+                        HorizontalOptions="Center"/>
 
-                    <!-- Puntaje final -->
                     <Label
                         Text="{Binding Score, StringFormat='Puntaje final: {0}'}"
                         FontFamily="{StaticResource FontBody}"
                         FontSize="16"
                         TextColor="{StaticResource TextSecondary}"
-                        HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"/>
+                        HorizontalOptions="Center"/>
 
-                    <!-- Separador -->
-                    <BoxView
-                        Color="{StaticResource CardBorder}"
-                        HeightRequest="1"
-                        Margin="0,4"/>
+                    <BoxView Color="{StaticResource CardBorder}" HeightRequest="1" Margin="0,4"/>
 
-                    <!-- Botón Nueva Partida -->
                     <Button
                         Text="🌱  Jugar de Nuevo"
                         Command="{Binding NewGameCommand}"
                         BackgroundColor="{StaticResource ButtonSecondary}"
                         TextColor="{StaticResource TextOnDark}"
                         FontFamily="{StaticResource FontBodyBold}"
-                        FontSize="15"
                         CornerRadius="12"
                         HeightRequest="46"/>
 
-                    <!-- Botón Menú -->
                     <Button
                         Text="🏡  Volver al Menú"
                         Command="{Binding BackToMenuCommand}"
                         BackgroundColor="Transparent"
                         TextColor="{StaticResource TextSecondary}"
                         FontFamily="{StaticResource FontBody}"
-                        FontSize="14"
                         CornerRadius="12"
                         HeightRequest="42"
                         BorderColor="{StaticResource CardBorder}"

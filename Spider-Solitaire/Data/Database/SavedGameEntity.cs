@@ -1,8 +1,7 @@
-﻿// Entidad de base de datos para persistir el estado del juego.
-// Serializa GameState a JSON para almacenamiento simple y flexible.
-using SQLite;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics.CodeAnalysis;
+﻿// Alias explícito para SQLite-net — resuelve ambigüedades con
+// System.Diagnostics.CodeAnalysis y System.ComponentModel.DataAnnotations.Schema
+// que .NET 10 incluye automáticamente via ImplicitUsings.
+using Sqlite = SQLite;
 
 namespace SpiderSolitaire.Data.Database
 {
@@ -11,48 +10,50 @@ namespace SpiderSolitaire.Data.Database
     /// Usamos serialización JSON para el estado complejo del juego —
     /// más flexible que normalizar todo en tablas relacionales.
     ///
-    /// Para un juego de cartas donde el estado cambia frecuentemente,
-    /// JSON en SQLite es un buen balance entre simplicidad y rendimiento.
+    /// NOTA: todos los atributos usan el alias [Sqlite.X] para evitar
+    /// ambigüedades con atributos homónimos del framework base.
     /// </summary>
-    [Table("saved_games")]
+    [Sqlite.Table("saved_games")]
     public class SavedGameEntity
     {
-        [PrimaryKey, AutoIncrement]
-        [Column("id")]
+        [Sqlite.PrimaryKey]
+        [Sqlite.AutoIncrement]
+        [Sqlite.Column("id")]
         public int Id { get; set; }
 
         /// <summary>
         /// Identificador único de la partida (GUID).
-        /// Permite distinguir partidas si en el futuro se soportan múltiples slots.
         /// </summary>
-        [Column("game_id"), Unique, NotNull]
+        [Sqlite.Column("game_id")]
+        [Sqlite.Unique]
+        [Sqlite.NotNull]
         public string GameId { get; set; } = System.Guid.NewGuid().ToString();
 
         /// <summary>
         /// Estado completo del juego serializado como JSON.
-        /// Incluye columnas, stock, puntaje, historial de undo, etc.
         /// </summary>
-        [Column("state_json"), NotNull]
+        [Sqlite.Column("state_json")]
+        [Sqlite.NotNull]
         public string StateJson { get; set; } = string.Empty;
 
         /// <summary>
-        /// Dificultad como entero (1, 2 o 4 palos).
-        /// Guardado por separado para queries rápidas sin deserializar.
+        /// Dificultad guardada por separado para queries rápidas
+        /// sin deserializar el JSON completo.
         /// </summary>
-        [Column("difficulty")]
+        [Sqlite.Column("difficulty")]
         public int Difficulty { get; set; }
 
         /// <summary>
-        /// Puntaje actual — guardado por separado para mostrar
-        /// en pantalla de selección sin deserializar el JSON completo.
+        /// Puntaje guardado por separado para mostrarlo en la UI
+        /// sin deserializar el JSON completo.
         /// </summary>
-        [Column("score")]
+        [Sqlite.Column("score")]
         public int Score { get; set; }
 
-        [Column("created_at")]
+        [Sqlite.Column("created_at")]
         public System.DateTime CreatedAt { get; set; } = System.DateTime.UtcNow;
 
-        [Column("updated_at")]
+        [Sqlite.Column("updated_at")]
         public System.DateTime UpdatedAt { get; set; } = System.DateTime.UtcNow;
     }
 }

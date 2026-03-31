@@ -1,7 +1,7 @@
-﻿// ViewModel principal del juego. Orquesta toda la interacción UI ↔ GameService.
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using SpiderSolitaire.DTOs;
 using SpiderSolitaire.Interfaces;
 using SpiderSolitaire.Models;
@@ -10,11 +10,7 @@ namespace SpiderSolitaire.ViewModels
 {
     /// <summary>
     /// ViewModel del tablero de juego.
-    /// Expone el estado del juego como propiedades observables
-    /// y maneja los comandos de interacción del usuario.
-    ///
-    /// Principio: este VM no contiene lógica de juego,
-    /// solo coordina entre la UI y IGameService.
+    /// QueryProperty recibe strings — la conversión a tipos ocurre aquí adentro.
     /// </summary>
     [QueryProperty(nameof(DifficultyParam), "difficulty")]
     [QueryProperty(nameof(SeedParam), "seed")]
@@ -26,28 +22,36 @@ namespace SpiderSolitaire.ViewModels
         private readonly INavigationService _navigation;
         private readonly ITimerService _timer;
 
-        // ── Query Parameters (Shell Navigation) ────────────────────
+        // ── Query Parameters ───────────────────────────────────────
+        // Ambos se reciben como string desde Shell navigation
         private string _difficultyParam = "1";
         private string _seedParam = "";
+        private bool _paramsReceived = false;
 
         public string DifficultyParam
         {
             get => _difficultyParam;
             set
             {
-                _difficultyParam = value;
-                // Inicializar cuando llegan los parámetros de navegación
-                _ = InitializeGameAsync();
+                _difficultyParam = value ?? "1";
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GameVM] DifficultyParam received: {_difficultyParam}");
+                TryStartGame();
             }
         }
 
         public string SeedParam
         {
             get => _seedParam;
-            set => _seedParam = value;
+            set
+            {
+                _seedParam = value ?? "";
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GameVM] SeedParam received: {_seedParam}");
+            }
         }
 
-        // ── Estado del juego (bindeable) ───────────────────────────
+        // ── Estado del juego ───────────────────────────────────────
         private ObservableCollection<ColumnDto> _columns = new();
         private int _score;
         private int _moves;
@@ -71,67 +75,56 @@ namespace SpiderSolitaire.ViewModels
             get => _columns;
             set => SetProperty(ref _columns, value);
         }
-
         public int Score
         {
             get => _score;
             set => SetProperty(ref _score, value);
         }
-
         public int Moves
         {
             get => _moves;
             set => SetProperty(ref _moves, value);
         }
-
         public int StockRemaining
         {
             get => _stockRemaining;
             set => SetProperty(ref _stockRemaining, value);
         }
-
         public int CompletedSequences
         {
             get => _completedSequences;
             set => SetProperty(ref _completedSequences, value);
         }
-
         public string ElapsedTime
         {
             get => _elapsedTime;
             set => SetProperty(ref _elapsedTime, value);
         }
-
         public bool CanDeal
         {
             get => _canDeal;
             set => SetProperty(ref _canDeal, value);
         }
-
         public bool CanUndo
         {
             get => _canUndo;
             set => SetProperty(ref _canUndo, value);
         }
-
         public bool IsGameOver
         {
             get => _isGameOver;
             set => SetProperty(ref _isGameOver, value);
         }
-
         public bool HasWon
         {
             get => _hasWon;
             set => SetProperty(ref _hasWon, value);
         }
-
         public string DifficultyLabel
         {
             get => _difficultyLabel;
             set => SetProperty(ref _difficultyLabel, value);
         }
-
         public int HighlightedColumn
         {
             get => _highlightedColumn;
@@ -145,8 +138,6 @@ namespace SpiderSolitaire.ViewModels
         public ICommand RestartCommand { get; }
         public ICommand BackToMenuCommand { get; }
         public ICommand CardTappedCommand { get; }
-
-        // Comandos de Drag & Drop
         public ICommand DragStartedCommand { get; }
         public ICommand DropCommand { get; }
         public ICommand DragOverCommand { get; }
@@ -166,99 +157,187 @@ namespace SpiderSolitaire.ViewModels
 
             Title = "Spider Solitaire 🌿";
 
-            // Suscribir al tick del timer
             _timer.Tick += OnTimerTick;
 
-            // Inicializar comandos
-            DealCommand = new Command(async () => await OnDealAsync(), () => CanDeal && !IsBusy);
-            UndoCommand = new Command(async () => await OnUndoAsync(), () => CanUndo && !IsBusy);
-            NewGameCommand = new Command(async () => await OnNewGameAsync());
-            RestartCommand = new Command(async () => await OnRestartAsync());
-            BackToMenuCommand = new Command(async () => await OnBackToMenuAsync());
+            DealCommand = new Command(OnDeal, () => CanDeal && !IsBusy);
+            UndoCommand = new Command(OnUndo, () => CanUndo && !IsBusy);
+            NewGameCommand = new Command(OnNewGame);
+            RestartCommand = new Command(OnRestart);
+            BackToMenuCommand = new Command(OnBackToMenu);
             CardTappedCommand = new Command<CardTapEventArgs>(OnCardTapped);
 
             DragStartedCommand = new Command<DragDropEventArgs>(OnDragStarted);
-            DropCommand = new Command<DragDropEventArgs>(async args => await OnDropAsync(args));
+            DropCommand = new Command<DragDropEventArgs>(OnDrop);
             DragOverCommand = new Command<int>(OnDragOver);
             DragLeaveCommand = new Command(OnDragLeave);
         }
 
         // ── Inicialización ─────────────────────────────────────────
+        /// <summary>
+        /// Shell puede enviar los QueryProperty en cualquier orden.
+        /// TryStartGame se llama solo cuando DifficultyParam ya llegó
+        /// (SeedParam es opcional, puede llegar vacío).
+        /// </summary>
+        private void TryStartGame()
+        {
+            if (_paramsReceived) return;
+            _paramsReceived = true;
+
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await InitializeGameAsync();
+            });
+        }
+
         public async Task InitializeGameAsync()
         {
-            await ExecuteAsync(async () =>
+            // Resetear flag para permitir reiniciar
+            _paramsReceived = false;
+
+            try
             {
+                IsBusy = true;
+
                 int difficulty = int.TryParse(_difficultyParam, out int d) ? d : 1;
                 int? seed = int.TryParse(_seedParam, out int s) ? s : null;
 
+                // Mapear int → Difficulty enum de forma segura
+                var difficultyEnum = difficulty switch
+                {
+                    1 => Difficulty.OneSuit,
+                    2 => Difficulty.TwoSuits,
+                    4 => Difficulty.FourSuits,
+                    _ => Difficulty.OneSuit
+                };
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GameVM] Starting game — difficulty: {difficultyEnum}, seed: {seed}");
+
                 var request = new NewGameRequestDto
                 {
-                    Difficulty = (Difficulty)difficulty,
+                    Difficulty = difficultyEnum,
                     Seed = seed
                 };
 
                 var state = await _gameService.StartNewGameAsync(request);
                 ApplyState(state);
                 _timer.Start();
-            });
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GameVM] Game started — columns: {state.Columns.Count}");
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[GameVM] InitializeGameAsync error: {ex.Message}\n{ex.StackTrace}");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         // ── Handlers de comandos ───────────────────────────────────
-        private async Task OnDealAsync()
+        private void OnDeal()
         {
-            await ExecuteAsync(async () =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                var state = await _gameService.DealNextRoundAsync();
-                if (state != null) ApplyState(state);
-                RefreshCommandStates();
+                try
+                {
+                    IsBusy = true;
+                    var state = await _gameService.DealNextRoundAsync();
+                    if (state != null) ApplyState(state);
+                    RefreshCommandStates();
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[GameVM] OnDeal error: {ex.Message}");
+                }
+                finally { IsBusy = false; }
             });
         }
 
-        private async Task OnUndoAsync()
+        private void OnUndo()
         {
-            await ExecuteAsync(async () =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                var state = await _gameService.UndoLastMoveAsync();
-                if (state != null) ApplyState(state);
-                RefreshCommandStates();
+                try
+                {
+                    IsBusy = true;
+                    var state = await _gameService.UndoLastMoveAsync();
+                    if (state != null) ApplyState(state);
+                    RefreshCommandStates();
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[GameVM] OnUndo error: {ex.Message}");
+                }
+                finally { IsBusy = false; }
             });
         }
 
-        private async Task OnNewGameAsync()
+        private void OnNewGame()
         {
-            bool confirm = await _dialog.ShowConfirmAsync(
-                "Nueva Partida",
-                "¿Abandonar la partida actual?",
-                "Sí", "No");
-
-            if (!confirm) return;
-
-            _timer.Reset();
-            await InitializeGameAsync();
-        }
-
-        private async Task OnRestartAsync()
-        {
-            bool confirm = await _dialog.ShowConfirmAsync(
-                "Reiniciar",
-                "¿Reiniciar la partida con el mismo mazo?",
-                "Sí", "No");
-
-            if (!confirm) return;
-
-            await ExecuteAsync(async () =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                _timer.Reset();
-                var state = await _gameService.RestartGameAsync();
-                ApplyState(state);
-                _timer.Start();
+                try
+                {
+                    bool confirm = await _dialog.ShowConfirmAsync(
+                        "Nueva Partida",
+                        "¿Abandonar la partida actual?",
+                        "Sí", "No");
+
+                    if (!confirm) return;
+
+                    _timer.Reset();
+                    _paramsReceived = false;
+                    await InitializeGameAsync();
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[GameVM] OnNewGame error: {ex.Message}");
+                }
             });
         }
 
-        private async Task OnBackToMenuAsync()
+        private void OnRestart()
         {
-            _timer.Pause();
-            await _navigation.NavigateBackAsync();
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try
+                {
+                    bool confirm = await _dialog.ShowConfirmAsync(
+                        "Reiniciar",
+                        "¿Reiniciar la partida con el mismo mazo?",
+                        "Sí", "No");
+
+                    if (!confirm) return;
+
+                    IsBusy = true;
+                    _timer.Reset();
+                    var state = await _gameService.RestartGameAsync();
+                    ApplyState(state);
+                    _timer.Start();
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[GameVM] OnRestart error: {ex.Message}");
+                }
+                finally { IsBusy = false; }
+            });
+        }
+
+        private void OnBackToMenu()
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                _timer.Pause();
+                await _navigation.NavigateBackAsync();
+            });
         }
 
         // ── Drag & Drop ────────────────────────────────────────────
@@ -268,78 +347,119 @@ namespace SpiderSolitaire.ViewModels
             _dragCardIndex = args.CardIndex;
         }
 
-        private async Task OnDropAsync(DragDropEventArgs args)
+        private void OnDrop(DragDropEventArgs args)
         {
             if (_dragSourceColumn == -1 || _dragCardIndex == -1) return;
 
             HighlightedColumn = -1;
-
-            await ExecuteAsync(async () =>
-            {
-                var state = await _gameService.TryMoveCardsAsync(
-                    _dragSourceColumn,
-                    _dragCardIndex,
-                    args.ColumnIndex);
-
-                if (state != null)
-                {
-                    ApplyState(state);
-                    RefreshCommandStates();
-
-                    // Manejar fin de juego
-                    if (state.IsGameOver)
-                        await HandleGameOverAsync(state);
-                }
-            });
+            int srcCol = _dragSourceColumn;
+            int cardIdx = _dragCardIndex;
+            int tgtCol = args.ColumnIndex;
 
             _dragSourceColumn = -1;
             _dragCardIndex = -1;
+
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try
+                {
+                    IsBusy = true;
+                    var state = await _gameService.TryMoveCardsAsync(
+                        srcCol, cardIdx, tgtCol);
+
+                    if (state != null)
+                    {
+                        ApplyState(state);
+                        RefreshCommandStates();
+
+                        if (state.IsGameOver)
+                            await HandleGameOverAsync(state);
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[GameVM] OnDrop error: {ex.Message}");
+                }
+                finally { IsBusy = false; }
+            });
         }
 
         private void OnDragOver(int columnIndex)
         {
-            // Resaltar la columna destino solo si el movimiento sería válido
             if (_dragSourceColumn >= 0 && _dragCardIndex >= 0)
             {
                 bool valid = _gameService.IsValidMove(
-                    _dragSourceColumn,
-                    _dragCardIndex,
-                    columnIndex);
-
+                    _dragSourceColumn, _dragCardIndex, columnIndex);
                 HighlightedColumn = valid ? columnIndex : -1;
             }
         }
 
         private void OnDragLeave() => HighlightedColumn = -1;
 
-        /// <summary>
-        /// Tap en carta: selección para mover sin drag & drop.
-        /// Primera carta tapeada = origen, segunda = destino.
-        /// </summary>
         private void OnCardTapped(CardTapEventArgs args)
         {
             if (_dragSourceColumn == -1)
             {
-                // Primera selección: marcar como origen
                 _dragSourceColumn = args.ColumnIndex;
                 _dragCardIndex = args.CardIndex;
-                // Aquí podrías resaltar las cartas seleccionadas en la UI
             }
             else
             {
-                // Segunda selección: intentar mover
-                _ = OnDropAsync(new DragDropEventArgs
+                var dropArgs = new DragDropEventArgs
                 {
                     ColumnIndex = args.ColumnIndex
-                });
+                };
+                OnDrop(dropArgs);
             }
         }
 
-        // ── Aplicar estado ─────────────────────────────────────────
         /// <summary>
-        /// Actualiza todas las propiedades bindeadas desde el DTO.
-        /// Se llama después de cada operación del GameService.
+        /// Método directo para mover cartas desde el code-behind.
+        /// Evita la doble llamada DragStarted+Drop que puede tener
+        /// condiciones de carrera en Android.
         /// </summary>
+        public void ExecuteMoveFromView(
+            int sourceColumn, int sourceCardIndex, int targetColumn)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[GameVM] ExecuteMove: {sourceColumn}[{sourceCardIndex}] → {targetColumn}");
+
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try
+                {
+                    IsBusy = true;
+                    var state = await _gameService.TryMoveCardsAsync(
+                        sourceColumn, sourceCardIndex, targetColumn);
+
+                    if (state != null)
+                    {
+                        ApplyState(state);
+                        RefreshCommandStates();
+
+                        if (state.IsGameOver)
+                            await HandleGameOverAsync(state);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            "[GameVM] Move invalid or rejected by service");
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[GameVM] ExecuteMove error: {ex.Message}");
+                }
+                finally
+                {
+                    IsBusy = false;
+                }
+            });
+        }
+
+        // ── Aplicar estado ─────────────────────────────────────────
         private void ApplyState(GameStateDto state)
         {
             Score = state.Score;
@@ -352,8 +472,6 @@ namespace SpiderSolitaire.ViewModels
             HasWon = state.HasWon;
             DifficultyLabel = state.Difficulty;
             ElapsedTime = state.ElapsedTime;
-
-            // Reemplazar la colección de columnas
             Columns = new ObservableCollection<ColumnDto>(state.Columns);
         }
 
@@ -371,30 +489,33 @@ namespace SpiderSolitaire.ViewModels
             {
                 await _dialog.ShowAlertAsync(
                     "🌸 ¡Victoria!",
-                    $"Completaste el juego con {state.Score} puntos en {state.ElapsedTime}. ¡Bien hecho!",
+                    $"Completaste el juego con {state.Score} puntos en {state.ElapsedTime}.",
                     "Gracias");
             }
             else
             {
                 bool retry = await _dialog.ShowConfirmAsync(
                     "🍂 Fin del Juego",
-                    "No hay más movimientos disponibles. ¿Intentar de nuevo?",
+                    "No hay más movimientos. ¿Intentar de nuevo?",
                     "Nueva Partida", "Menú");
 
                 if (retry)
-                    await OnNewGameAsync();
+                    OnNewGame();
                 else
-                    await OnBackToMenuAsync();
+                    OnBackToMenu();
             }
         }
 
         private void OnTimerTick(object? sender, System.TimeSpan elapsed)
         {
-            ElapsedTime = elapsed.ToString(@"mm\:ss");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                ElapsedTime = elapsed.ToString(@"mm\:ss");
+            });
         }
     }
 
-    // ── Event Args para comandos tipados ──────────────────────────
+    // ── Event Args ─────────────────────────────────────────────────
     public class DragDropEventArgs
     {
         public int ColumnIndex { get; set; }
